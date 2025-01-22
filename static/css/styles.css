@@ -1,0 +1,168 @@
+@font-face {
+    font-family: 'MyPixelFont';
+    src: url('/static/css/fonts/Hardpixel-nn51.otf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    margin: 0;
+    background-color: #0000AA;
+    color: #FFFFFF;
+    font-family: 'MyPixelFont';
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    line-height: 1.4;
+    position: relative;
+    overflow: hidden;
+}
+
+body::before {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+
+    background: url("/static/img/noise.png") repeat;
+    opacity: 0.08;
+
+    animation: noiseAnim 0.5s steps(5) infinite;
+    z-index: 9999;
+}
+
+@keyframes noiseAnim {
+    0% {
+        background-position: 0 0;
+    }
+
+    50% {
+        background-position: 25px 25px;
+    }
+
+    100% {
+        background-position: 0 0;
+    }
+}
+
+
+.input-panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background-color: #000088;
+    border-bottom: 2px solid #FFFFFF;
+}
+
+.input-panel label {
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.input-panel button,
+.input-panel input[type="text"],
+.input-panel input[type="number"] {
+    background-color: #000044;
+    border: 1px solid #FFFFFF;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: inherit;
+    padding: 4px 6px;
+}
+
+.input-panel button:hover {
+    background-color: #000066;
+    cursor: pointer;
+}
+
+#mynetwork {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 50px);
+    box-sizing: border-box;
+    border-top: 2px solid #FFFFFF;
+}
+
+#side-panel {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 400px;
+    height: calc(100vh - 50px);
+    background-color: #000044;
+    border-left: 2px solid #FFFFFF;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    z-index: 999;
+    color: #FFFFFF;
+}
+
+#side-panel.open {
+    transform: translateX(0);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #000066;
+    padding: 8px;
+    border-bottom: 2px solid #FFFFFF;
+}
+
+.panel-header button {
+    background-color: #000044;
+    border: 1px solid #FFFFFF;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 2px 6px;
+    letter-spacing: inherit;
+}
+
+.panel-header button:hover {
+    background-color: #000066;
+    cursor: pointer;
+}
+
+#panel-title {
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-right: 10px;
+}
+
+#panel-content {
+    overflow-y: auto;
+    padding: 8px;
+    flex: 1;
+}
+
+#panel-content p,
+#panel-content h1,
+#panel-content h2,
+#panel-content h3,
+#panel-content ul,
+#panel-content ol,
+#panel-content li,
+#panel-content table {
+    margin: 8px 0;
+}
+
+#panel-content a {
+    color: #FFEE00;
+    text-decoration: none;
+}
+
+#panel-content a:hover {
+    text-decoration: underline;
+}
+
+.vis-network canvas {
+    background-color: #0000AA;
+}
