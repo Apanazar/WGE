@@ -1,6 +1,6 @@
 @font-face {
     font-family: 'MyPixelFont';
-    src: url('/static/css/fonts/Hardpixel-nn51.otf') format('truetype');
+    src: url('/static/fonts/Hardpixel-nn51.otf');
     font-weight: normal;
     font-style: normal;
 }
@@ -165,4 +165,28 @@ body::before {
 
 .vis-network canvas {
     background-color: #0000AA;
+}
+
+#context-menu div:hover {
+    background-color: #000066;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999999 !important;
+}
+
+.modal-content {
+    background: #4444aa;
+    color: #fff;
+    width: 400px;
+    margin: 100px auto;
+    padding: 20px;
+    border: 2px solid #ffffff;
 }

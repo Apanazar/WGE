@@ -157,14 +157,15 @@ func parseWikiArticle(articleURL string) (*ArticleData, error) {
 
 	var links []string
 	contentSel.Find("a").Each(func(i int, s *goquery.Selection) {
-		if s.Closest("table.infobox").Length() > 0 {
+		href, exists := s.Attr("href")
+		if !exists {
 			return
 		}
 
-		href, _ := s.Attr("href")
 		if isWikiLink(href) {
 			fullURL := "https://ru.wikipedia.org" + href
 			links = append(links, fullURL)
+			s.SetAttr("href", fullURL)
 		}
 	})
 	links = unique(links)
@@ -179,16 +180,6 @@ func parseWikiArticle(articleURL string) (*ArticleData, error) {
 		Content: htmlContent,
 		Links:   links,
 	}, nil
-}
-
-func isWikiLink(href string) bool {
-	if !strings.HasPrefix(href, "/wiki/") {
-		return false
-	}
-	if strings.Contains(href, ":") {
-		return false
-	}
-	return true
 }
 
 func unique(list []string) []string {
@@ -211,4 +202,14 @@ func extractTitleFromWikiURL(fullURL string) string {
 	title := strings.TrimPrefix(u.Path, "/wiki/")
 	title = strings.ReplaceAll(title, "_", " ")
 	return title
+}
+
+func isWikiLink(href string) bool {
+	if !strings.HasPrefix(href, "/wiki/") {
+		return false
+	}
+	if strings.Contains(href, ":") {
+		return false
+	}
+	return true
 }
