@@ -1,7 +1,8 @@
 # Wiki Graph Explorer (WGE)
 
 **Wikipedia link visualizer** — install it as a Chrome/Firefox extension and dive into any article’s web of connections.
-
+  
+![WGE](https://github.com/Apanazar/stuprum/blob/master/wge2.png)
 ---
 
 ## 🎯 Who It’s For & Why You’ll Love It
@@ -59,6 +60,3 @@ In short, Wiki Graph Explorer turns linear Wikipedia browsing into an immersive,
 
 ## 🚀 Getting Started
 - **The link to the Chrome extension store will be coming soon**
-
----
-![WGE](https://github.com/Apanazar/stuprum/blob/master/wge.png)
