@@ -60,3 +60,4 @@ In short, Wiki Graph Explorer turns linear Wikipedia browsing into an immersive,
 
 ## 🚀 Getting Started
 - **The link to the Chrome extension store will be coming soon**
+- **For manual installation: ![release page](https://github.com/Apanazar/WGE/releases/tag/WGE_Chrome)**
