@@ -1,81 +1,50 @@
-@font-face {
-    font-family: 'MyPixelFont';
-    src: url('/static/fonts/Hardpixel-nn51.otf');
-    font-weight: normal;
-    font-style: normal;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-    margin: 0;
-    background-color: #0000AA;
-    color: #FFFFFF;
-    font-family: 'MyPixelFont';
-    font-size: 14px;
+    background-color: #0b0b0b;
+    color: #e0e0e0;
+    font-family: 'MyPixelFont', monospace;
+    font-size: 16px;
     letter-spacing: 0.05em;
     line-height: 1.4;
-    position: relative;
     overflow: hidden;
 }
-
-body::before {
-    content: "";
-    pointer-events: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-
-    background: url("/static/img/noise.png") repeat;
-    opacity: 0.08;
-
-    animation: noiseAnim 0.5s steps(5) infinite;
-    z-index: 9999;
-}
-
-@keyframes noiseAnim {
-    0% {
-        background-position: 0 0;
-    }
-
-    50% {
-        background-position: 25px 25px;
-    }
-
-    100% {
-        background-position: 0 0;
-    }
-}
-
 
 .input-panel {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px;
-    background-color: #000088;
-    border-bottom: 2px solid #FFFFFF;
+    background-color: #1a1a1a;
+    border-bottom: 2px solid #333333;
 }
 
 .input-panel label {
     font-weight: bold;
     text-transform: uppercase;
+    color: #c0c0c0;
+    font-size: 16px;
 }
 
 .input-panel button,
 .input-panel input[type="text"],
 .input-panel input[type="number"] {
-    background-color: #000044;
-    border: 1px solid #FFFFFF;
-    color: #FFFFFF;
+    background-color: #262626;
+    border: 1px solid #444444;
+    color: #e0e0e0;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 16px;
     letter-spacing: inherit;
     padding: 4px 6px;
+    border-radius: 3px;
 }
 
 .input-panel button:hover {
-    background-color: #000066;
+    background-color: #333333;
     cursor: pointer;
 }
 
@@ -83,24 +52,23 @@ body::before {
     position: relative;
     width: 100%;
     height: calc(100vh - 50px);
-    box-sizing: border-box;
-    border-top: 2px solid #FFFFFF;
+    border-top: 2px solid #333333;
 }
 
 #side-panel {
     position: absolute;
     top: 50px;
     right: 0;
-    width: 400px;
+    width: 700px;
     height: calc(100vh - 50px);
-    background-color: #000044;
-    border-left: 2px solid #FFFFFF;
+    background-color: #1e1e1e;
+    border-left: 2px solid #333333;
     transform: translateX(100%);
     transition: transform 0.3s ease-in-out;
     display: flex;
     flex-direction: column;
     z-index: 999;
-    color: #FFFFFF;
+    color: #e0e0e0;
 }
 
 #side-panel.open {
@@ -111,23 +79,23 @@ body::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #000066;
+    background-color: #2a2a2a;
     padding: 8px;
-    border-bottom: 2px solid #FFFFFF;
+    border-bottom: 2px solid #333333;
 }
 
 .panel-header button {
-    background-color: #000044;
-    border: 1px solid #FFFFFF;
-    color: #FFFFFF;
+    background-color: #262626;
+    border: 1px solid #444444;
+    color: #e0e0e0;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 16px;
     padding: 2px 6px;
-    letter-spacing: inherit;
+    border-radius: 3px;
 }
 
 .panel-header button:hover {
-    background-color: #000066;
+    background-color: #333333;
     cursor: pointer;
 }
 
@@ -135,12 +103,15 @@ body::before {
     font-weight: bold;
     text-transform: uppercase;
     margin-right: 10px;
+    color: #ffffff;
+    font-size: 16px;
 }
 
 #panel-content {
     overflow-y: auto;
     padding: 8px;
     flex: 1;
+    font-size: 16px;
 }
 
 #panel-content p,
@@ -152,11 +123,13 @@ body::before {
 #panel-content li,
 #panel-content table {
     margin: 8px 0;
+    font-size: 16px;
 }
 
 #panel-content a {
-    color: #FFEE00;
+    color: #71a8ff;
     text-decoration: none;
+    font-size: 16px;
 }
 
 #panel-content a:hover {
@@ -164,11 +137,15 @@ body::before {
 }
 
 .vis-network canvas {
-    background-color: #0000AA;
+    background-color: #0b0b0b;
+}
+
+#context-menu div {
+    font-size: 16px;
 }
 
 #context-menu div:hover {
-    background-color: #000066;
+    background-color: #333333;
 }
 
 .modal {
@@ -178,15 +155,17 @@ body::before {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(11, 11, 11, 0.8);
     z-index: 9999999 !important;
 }
 
 .modal-content {
-    background: #4444aa;
-    color: #fff;
+    background: #2e2e2e;
+    color: #e0e0e0;
     width: 400px;
     margin: 100px auto;
     padding: 20px;
-    border: 2px solid #ffffff;
+    border: 2px solid #444444;
+    border-radius: 4px;
+    font-size: 16px;
 }

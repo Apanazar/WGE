@@ -1,0 +1,83 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+
+html,
+body {
+    width: 420px;
+    height: 200px;
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+    font-family: sans-serif;
+}
+
+
+.popup-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    gap: 12px;
+    height: 100%;
+}
+
+
+.popup-container h1 {
+    font-size: 1.4em;
+    text-align: center;
+}
+
+.github-links {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    justify-content: center;
+}
+
+
+.github-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: #8ab4f8;
+    font-size: 1.3em;
+    padding: 6px 8px;
+    background: #252525;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.github-links a:hover {
+    background: #333333;
+}
+
+.github-links .icon {
+    width: 1em;
+    height: 1em;
+    fill: #8ab4f8;
+}
+
+
+button#btn-explore {
+    margin-top: auto;
+    padding: 10px;
+    background-color: #333333;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    color: #f0f0f0;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+button#btn-explore:hover {
+    background-color: #444444;
+}
+
+button#btn-explore:active {
+    transform: scale(0.98);
+}

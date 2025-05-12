@@ -1,486 +1,243 @@
-document.addEventListener("DOMContentLoaded", function () {
-  const inputUrl = document.getElementById("wiki-url");
-  const inputLimit = document.getElementById("link-limit");
-  const btnOk = document.getElementById("btn-ok");
-  const btnRandom = document.getElementById("btn-random");
-  const btnSave = document.getElementById("btn-save");
-  const btnLoad = document.getElementById("btn-load");
-  const fileInput = document.getElementById("file-input");
-  const networkContainer = document.getElementById("mynetwork");
-  const sidePanel = document.getElementById("side-panel");
-  const btnClose = document.getElementById("btn-close");
-  const panelTitle = document.getElementById("panel-title");
-  const panelContent = document.getElementById("panel-content");
+async function parseWikiArticle(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const html = await resp.text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
 
-  const contextMenu = document.createElement("div");
-  contextMenu.id = "context-menu";
-  contextMenu.style.position = "absolute";
-  contextMenu.style.display = "none";
-  contextMenu.style.background = "#0000AA";
-  contextMenu.style.border = "1px solid #FFFFFF";
-  contextMenu.style.padding = "4px";
-  contextMenu.style.zIndex = 9999;
-  document.body.appendChild(contextMenu);
+  const title = doc.querySelector('#firstHeading')?.textContent.trim() || 'Untitled';
+  const contentEl = doc.querySelector('.mw-parser-output');
+  if (!contentEl) {
+    return { title, content: '<p>Main content not found</p>', links: [] };
+  }
 
-  let nodesData, edgesData, network;
-  let urlToNodeId = {};
-  let currentNodeId = 0;
-  let firstSelectedNodeId = null;
+
+  const refs = Array.from(contentEl.querySelectorAll('h2'))
+    .find(h2 => /References|Notes|Footnotes/.test(h2.textContent));
+  if (refs) {
+    let el = refs.nextElementSibling;
+    while (el) {
+      const next = el.nextElementSibling;
+      el.remove();
+      el = next;
+    }
+    refs.remove();
+  }
+
+
+  const links = new Set();
+  contentEl.querySelectorAll('a[href^="/wiki/"]').forEach(a => {
+    const h = a.getAttribute('href');
+    if (!h.includes(':')) {
+      const full = new URL(h, url).toString();
+      links.add(full);
+      a.href = full;
+      a.target = '_blank';
+    }
+  });
+
+
+  contentEl.querySelectorAll('img').forEach(img => {
+    const src = img.getAttribute('src') || '';
+    if (src.startsWith('//')) img.src = 'https:' + src;
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+  });
+
+  return { title, content: contentEl.innerHTML, links: Array.from(links) };
+}
+
+
+async function getRandomWikiURL() {
+  const resp = await fetch('https://en.wikipedia.org/wiki/Special:Random', { redirect: 'follow' });
+  return resp.url;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const urlInput = document.getElementById('wiki-url');
+  const limitInput = document.getElementById('link-limit');
+  const btnGo = document.getElementById('btn-ok');
+  const btnRand = document.getElementById('btn-random');
+  const btnSave = document.getElementById('btn-save');
+  const btnLoad = document.getElementById('btn-load');
+  const fileInput = document.getElementById('file-input');
+  const netContainer = document.getElementById('mynetwork');
+  const sidePanel = document.getElementById('side-panel');
+  const btnClose = document.getElementById('btn-close');
+  const panelTitle = document.getElementById('panel-title');
+  const panelContent = document.getElementById('panel-content');
+
+
+  const ctxMenu = document.createElement('div');
+  ctxMenu.id = 'context-menu';
+  Object.assign(ctxMenu.style, {
+    position: 'absolute', display: 'none', border: '1px solid #333',
+    background: '#1a1a1a', color: '#e0e0e0', padding: '4px', zIndex: 9999
+  });
+  document.body.appendChild(ctxMenu);
+
+  let nodes, edges, network;
+  let urlMap = {}, nextId = 0, firstSel = null;
 
   function initNetwork() {
-    nodesData = new vis.DataSet();
-    edgesData = new vis.DataSet();
-
-    const data = {
-      nodes: nodesData,
-      edges: edgesData,
-    };
-
-    const options = {
+    nodes = new vis.DataSet();
+    edges = new vis.DataSet();
+    network = new vis.Network(netContainer, { nodes, edges }, {
       nodes: {
-        shape: "box",
-        shapeProperties: { borderRadius: 0 },
-        color: {
-          background: "#FFFFFF",
-          highlight: { background: "#FFFFFF", border: "#FFFF00" },
-          hover: { background: "#FFFFFF", border: "#FFFF00" },
-        },
-        borderWidth: 2,
-        font: { size: 14, color: "#000000" },
-        widthConstraint: 70,
-        heightConstraint: 40,
+        shape: 'box', shapeProperties: { borderRadius: 0 },
+        color: { background: '#FFFFFF', highlight: { background: '#FFFFFF', border: '#00BFFF' }, hover: { background: '#FFFFFF', border: '#99EFFF' } },
+        borderWidth: 2, font: { size: 14, color: '#000000' }, widthConstraint: 70, heightConstraint: 40
       },
-      edges: {
-        color: {
-          color: "#FFFF00",
-          highlight: "#FFFF00",
-          hover: "#FFFF00",
-        },
-        width: 2,
-        smooth: { type: "continuous" },
-      },
-      physics: {
-        enabled: true,
-        solver: "forceAtlas2Based",
-        forceAtlas2Based: {
-          gravitationalConstant: -150,
-          springLength: 100,
-          avoidOverlap: 1,
-        },
-        stabilization: { iterations: 300 },
-      },
-      interaction: {
-        dragNodes: true,
-        zoomView: true,
-      },
-    };
+      edges: { color: { color: '#00BFFF', highlight: '#66DFFF', hover: '#99EFFF' }, width: 2, smooth: { type: 'continuous' } },
+      physics: { enabled: true, solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -150, springLength: 100, avoidOverlap: 1 }, stabilization: { iterations: 300 } },
+      interaction: { dragNodes: true, zoomView: true }
+    });
 
-    network = new vis.Network(networkContainer, data, options);
-    network.on("click", async (params) => {
+
+    network.on('click', async params => {
       const ev = params.event?.srcEvent || params.event;
-      if (params.nodes.length > 0 && ev && !ev.shiftKey && ev.which === 1) {
-        const nodeId = params.nodes[0];
-        const node = nodesData.get(nodeId);
-        if (node && node.url) {
-          const limit = parseInt(inputLimit.value) || 5;
-          await parseArticleAndExpand(node.url, limit);
-        }
-      }
+      if (params.nodes.length && !ev.shiftKey && ev.which === 1) await expandNode(params.nodes[0]);
     });
 
-    network.on("click", (params) => {
+
+    network.on('click', params => {
       const ev = params.event?.srcEvent || params.event;
-      if (params.nodes.length > 0 && ev && ev.shiftKey && ev.which === 1) {
-        const nodeId = params.nodes[0];
-        if (firstSelectedNodeId === null) {
-          firstSelectedNodeId = nodeId;
-          network.selectNodes([nodeId]);
-        } else {
-          if (firstSelectedNodeId !== nodeId) {
-            if (
-              !edgeExists(firstSelectedNodeId, nodeId) &&
-              !edgeExists(nodeId, firstSelectedNodeId)
-            ) {
-              edgesData.add({ from: firstSelectedNodeId, to: nodeId });
-            }
-          }
-          network.unselectAll();
-          firstSelectedNodeId = null;
+      if (params.nodes.length && ev.shiftKey && ev.which === 1) {
+        const id = params.nodes[0];
+        if (firstSel === null) { firstSel = id; network.selectNodes([id]); }
+        else if (firstSel !== id) {
+          if (!edges.get({ filter: e => e.from === firstSel && e.to === id }).length)
+            edges.add({ from: firstSel, to: id });
+          network.unselectAll(); firstSel = null;
         }
       }
     });
 
-    networkContainer.addEventListener("contextmenu", (ev) => {
-      ev.preventDefault();
 
-      const pointer = { x: ev.offsetX, y: ev.offsetY };
-      const nodeId = network.getNodeAt(pointer);
-      const pageX = ev.pageX;
-      const pageY = ev.pageY;
-
-      if (nodeId !== undefined) {
-        showNodeContextMenu(pageX, pageY, nodeId);
-      } else {
-        showEmptyContextMenu(pageX, pageY, pointer);
-      }
+    netContainer.addEventListener('dragover', e => e.preventDefault());
+    netContainer.addEventListener('drop', e => {
+      e.preventDefault();
+      const data = e.dataTransfer.getData('application/json');
+      if (!data) return;
+      const { url, title } = JSON.parse(data);
+      const pos = network.DOMtoCanvas({ x: e.offsetX, y: e.offsetY });
+      const id = nextId++;
+      urlMap[url] = id;
+      nodes.add({ id, label: title, url, x: pos.x, y: pos.y });
     });
 
-    networkContainer.addEventListener("dragover", (ev) => {
-      ev.preventDefault();
-    });
-    networkContainer.addEventListener("drop", (ev) => {
-      ev.preventDefault();
-      const dataStr = ev.dataTransfer.getData("text/plain");
-      if (!dataStr) return;
 
-      let obj;
-      try {
-        obj = JSON.parse(dataStr);
-      } catch (e) {
-        return;
-      }
-
-      const { url, title, fromNodeId } = obj;
-      const pos = network.DOMtoCanvas({ x: ev.offsetX, y: ev.offsetY });
-
-      const newNodeId = currentNodeId++;
-      urlToNodeId[url] = newNodeId;
-      nodesData.add({
-        id: newNodeId,
-        label: title,
-        url: url,
-        x: pos.x,
-        y: pos.y,
-      });
-      if (fromNodeId != null) {
-        edgesData.add({ from: fromNodeId, to: newNodeId });
-      }
+    netContainer.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const pos = { x: e.offsetX, y: e.offsetY };
+      const id = network.getNodeAt(pos);
+      if (ctxMenu.style.display === 'block') { ctxMenu.style.display = 'none'; return; }
+      if (id !== undefined) showNodeMenu(e.pageX, e.pageY, id);
     });
   }
 
-  function showNodeContextMenu(pageX, pageY, nodeId) {
-    contextMenu.innerHTML = "";
-
-    const openItem = document.createElement("div");
-    openItem.textContent = "Открыть (parse)";
-    styleContextItem(openItem);
-    openItem.addEventListener("click", async () => {
-      hideContextMenu();
-      const node = nodesData.get(nodeId);
-      if (node && node.url) {
-        const limit = parseInt(inputLimit.value) || 5;
-        await parseArticleAndExpand(node.url, limit);
-      }
+  function showNodeMenu(x, y, id) {
+    ctxMenu.innerHTML = '';
+    ['Open', 'Delete', 'Detach'].forEach(txt => {
+      const div = document.createElement('div'); div.textContent = txt;
+      div.style.padding = '5px'; div.style.cursor = 'pointer'; div.style.color = '#e0e0e0';
+      div.addEventListener('mouseenter', () => div.style.background = '#333');
+      div.addEventListener('mouseleave', () => div.style.background = '');
+      if (txt === 'Open') div.onclick = async () => { hideMenu(); await expandNode(id); };
+      if (txt === 'Delete') div.onclick = () => { hideMenu(); removeNode(id); };
+      if (txt === 'Detach') div.onclick = () => { hideMenu(); toggleDetach(id); };
+      ctxMenu.appendChild(div);
     });
-    contextMenu.appendChild(openItem);
-
-    const removeItem = document.createElement("div");
-    removeItem.textContent = "Удалить";
-    styleContextItem(removeItem);
-    removeItem.addEventListener("click", () => {
-      hideContextMenu();
-      removeNode(nodeId);
-    });
-    contextMenu.appendChild(removeItem);
-
-    const detachItem = document.createElement("div");
-    detachItem.textContent = "Открепить/Прикрепить";
-    styleContextItem(detachItem);
-    detachItem.addEventListener("click", () => {
-      hideContextMenu();
-      toggleNodeDetached(nodeId);
-    });
-    contextMenu.appendChild(detachItem);
-
-    contextMenu.style.left = pageX + "px";
-    contextMenu.style.top = pageY + "px";
-    contextMenu.style.display = "block";
+    ctxMenu.style.left = x + 'px'; ctxMenu.style.top = y + 'px'; ctxMenu.style.display = 'block';
   }
 
-  function showEmptyContextMenu(pageX, pageY, pointer) {
-    contextMenu.innerHTML = "";
+  function hideMenu() { ctxMenu.style.display = 'none'; }
 
-    const label = document.createElement("div");
-    label.textContent = "Добавить (wiki):";
-    styleContextItem(label, true);
-    contextMenu.appendChild(label);
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "https://ru.wikipedia.org/wiki/...";
-    input.style.width = "300px";
-    input.style.margin = "4px 0";
-    contextMenu.appendChild(input);
-
-    const addBtn = document.createElement("button");
-    addBtn.textContent = "Добавить";
-    addBtn.style.margin = "4px 0";
-    addBtn.addEventListener("click", async () => {
-      hideContextMenu();
-      const url = input.value.trim();
-      if (url) {
-        const limit = parseInt(inputLimit.value) || 5;
-        const pos = network.DOMtoCanvas({ x: pointer.x, y: pointer.y });
-        await parseArticleAndExpand(url, limit, pos);
-      }
-    });
-    contextMenu.appendChild(addBtn);
-
-    contextMenu.style.left = pageX + "px";
-    contextMenu.style.top = pageY + "px";
-    contextMenu.style.display = "block";
-  }
-
-  function styleContextItem(el, bold = false) {
-    el.style.padding = "5px";
-    el.style.cursor = "pointer";
-    if (bold) {
-      el.style.fontWeight = "bold";
-    }
-    el.addEventListener("mouseenter", () => {
-      el.style.backgroundColor = "#000066";
-    });
-    el.addEventListener("mouseleave", () => {
-      el.style.backgroundColor = "";
-    });
-  }
-
-  function hideContextMenu() {
-    contextMenu.style.display = "none";
-  }
-
-  function removeNode(nodeId) {
-    const connectedEdges = network.getConnectedEdges(nodeId);
-    edgesData.remove(connectedEdges);
-    nodesData.remove(nodeId);
-
-    const entry = Object.entries(urlToNodeId).find(
-      ([_, val]) => val === nodeId
-    );
-    if (entry) {
-      delete urlToNodeId[entry[0]];
-    }
-  }
-
-  function toggleNodeDetached(nodeId) {
-    let node = nodesData.get(nodeId);
-    if (!node) return;
-
-    let connectedEdges = network.getConnectedEdges(nodeId);
-    if (!node.detached) {
-      let theseEdges = edgesData.get(connectedEdges);
-      node.detachedEdges = theseEdges;
-      node.detached = true;
-      edgesData.remove(connectedEdges);
-      nodesData.update(node);
-    } else {
-      let theseEdges = node.detachedEdges || [];
-      edgesData.add(theseEdges);
-      node.detachedEdges = null;
-      node.detached = false;
-      nodesData.update(node);
-    }
-  }
-
-  async function parseArticleAndExpand(url, limit, pos) {
-    try {
-      const resp = await fetch(
-        `/parse?url=${encodeURIComponent(url)}&limit=${limit}`
-      );
-      if (!resp.ok) {
-        alert("Article parsing error");
-        return;
-      }
-      const data = await resp.json();
-
-      panelTitle.textContent = data.title || "Untitled";
-      panelContent.innerHTML = data.content || "";
-      sidePanel.classList.add("open");
-
-      makeAllLinksDraggable(panelContent, urlToNodeId[url]);
-
-      let nodeId = urlToNodeId[url];
-      let isNewNode = false;
-
-      if (nodeId === undefined) {
-        nodeId = currentNodeId++;
-        urlToNodeId[url] = nodeId;
-        isNewNode = true;
-        nodesData.add({
-          id: nodeId,
-          label: data.title,
-          url: url,
-        });
-      } else {
-        nodesData.update({
-          id: nodeId,
-          label: data.title,
-          url: url,
-        });
-      }
-
-      if (pos && isNewNode) {
-        nodesData.update({
-          id: nodeId,
-          x: pos.x,
-          y: pos.y,
-        });
-      }
-
-      for (const linkObj of data.links) {
-        const linkUrl = linkObj.url;
-        let linkNodeId = urlToNodeId[linkUrl];
-        if (linkNodeId === undefined) {
-          linkNodeId = currentNodeId++;
-          urlToNodeId[linkUrl] = linkNodeId;
-          nodesData.add({
-            id: linkNodeId,
-            label: linkObj.title,
-            url: linkUrl,
-          });
-        }
-        if (
-          !edgeExists(nodeId, linkNodeId) &&
-          !edgeExists(linkNodeId, nodeId)
-        ) {
-          edgesData.add({ from: nodeId, to: linkNodeId });
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Request error: /parse");
-    }
-  }
-
-  function makeAllLinksDraggable(container, fromNodeId) {
-    const allAnchors = container.querySelectorAll("a");
-    allAnchors.forEach((a) => {
-      a.addEventListener("click", (ev) => ev.preventDefault());
+  function makeLinksDraggable(container) {
+    container.querySelectorAll('a').forEach(a => {
       a.draggable = true;
-      a.addEventListener("dragstart", (ev) => {
-        ev.dataTransfer.setData(
-          "text/plain",
-          JSON.stringify({
-            url: a.href,
-            title: a.textContent,
-            fromNodeId: fromNodeId,
-          })
-        );
-        ev.dataTransfer.effectAllowed = "move";
+      a.addEventListener('dragstart', ev => {
+        ev.dataTransfer.setData('application/json', JSON.stringify({ url: a.href, title: a.textContent.trim() }));
+        ev.dataTransfer.effectAllowed = 'copy';
       });
     });
   }
 
-  function edgeExists(fromId, toId) {
-    const edges = edgesData.get({
-      filter: (edge) => edge.from === fromId && edge.to === toId,
+  async function expandNode(id) {
+    const { title, content, links } = await parseWikiArticle(nodes.get(id).url);
+    panelTitle.textContent = title;
+    panelContent.innerHTML = content;
+    sidePanel.classList.add('open');
+    nodes.update({ id, label: title, url: nodes.get(id).url });
+
+    makeLinksDraggable(panelContent);
+    links.slice(0, +limitInput.value).forEach(link => {
+      let lid = urlMap[link];
+      if (lid === undefined) {
+        lid = nextId++; urlMap[link] = lid;
+        const lbl = decodeURIComponent(link.split('/').pop()).replace(/_/g, ' ');
+        nodes.add({ id: lid, label: lbl, url: link });
+      }
+      if (!edges.get({ filter: e => e.from === id && e.to === lid }).length)
+        edges.add({ from: id, to: lid });
     });
-    return edges.length > 0;
   }
 
-  btnClose.addEventListener("click", () => {
-    sidePanel.classList.remove("open");
-  });
+  function removeNode(id) {
+    edges.remove(network.getConnectedEdges(id));
+    nodes.remove(id);
+    for (const u in urlMap) if (urlMap[u] === id) delete urlMap[u];
+  }
 
-  btnOk.addEventListener("click", async () => {
-    const articleUrl = inputUrl.value.trim();
-    if (!articleUrl) return;
-
-    nodesData.clear();
-    edgesData.clear();
-    urlToNodeId = {};
-    currentNodeId = 0;
-    firstSelectedNodeId = null;
-
-    const limit = parseInt(inputLimit.value) || 5;
-    await parseArticleAndExpand(articleUrl, limit);
-  });
-
-  btnRandom.addEventListener("click", async () => {
-    try {
-      const resp = await fetch("/random");
-      if (!resp.ok) {
-        alert("Error (random page)");
-        return;
-      }
-      const data = await resp.json();
-      if (data.url) {
-        nodesData.clear();
-        edgesData.clear();
-        urlToNodeId = {};
-        currentNodeId = 0;
-        firstSelectedNodeId = null;
-
-        const limit = parseInt(inputLimit.value) || 5;
-        await parseArticleAndExpand(data.url, limit);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Request error: /random");
+  function toggleDetach(id) {
+    const n = nodes.get(id);
+    if (!n.detached) {
+      const con = network.getConnectedEdges(id).map(e => edges.get(e)).flat();
+      n.detachedEdges = con; n.detached = true;
+      edges.remove(network.getConnectedEdges(id));
+    } else {
+      edges.add(n.detachedEdges || []);
+      n.detached = false; n.detachedEdges = null;
     }
+    nodes.update(n);
+  }
+
+  btnGo.addEventListener('click', async () => {
+    const u = urlInput.value.trim(); if (!u) return;
+    nodes.clear(); edges.clear(); urlMap = {}; nextId = 0; firstSel = null;
+    const root = nextId++; urlMap[u] = root;
+    nodes.add({ id: root, label: u, url: u });
+    await expandNode(root);
   });
 
-  btnSave.addEventListener("click", () => {
-    console.log("clicked");
-    handleSaveGraph();
+  btnRand.addEventListener('click', async () => {
+    nodes.clear(); edges.clear(); urlMap = {}; nextId = 0; firstSel = null;
+    const r = await getRandomWikiURL(); urlInput.value = r;
+    const root = nextId++; urlMap[r] = root;
+    nodes.add({ id: root, label: r, url: r });
+    await expandNode(root);
   });
 
-  btnLoad.addEventListener("click", () => {
-    fileInput.value = "";
-    fileInput.click();
+  btnSave.addEventListener('click', () => {
+    const graph = { nodes: nodes.get(), edges: edges.get() };
+    const blob = new Blob([JSON.stringify(graph, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'graph.json'; document.body.appendChild(a); a.click(); a.remove();
   });
 
-  fileInput.addEventListener("change", (ev) => {
-    const file = ev.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const content = e.target.result;
-        const graph = JSON.parse(content);
-
-        nodesData.clear();
-        edgesData.clear();
-        urlToNodeId = {};
-        currentNodeId = 0;
-        firstSelectedNodeId = null;
-
-        nodesData.add(graph.nodes);
-        edgesData.add(graph.edges);
-
-        for (const n of graph.nodes) {
-          if (n.url) {
-            urlToNodeId[n.url] = n.id;
-          }
-          if (n.id >= currentNodeId) {
-            currentNodeId = n.id + 1;
-          }
-        }
-      } catch (err) {
-        alert("Ошибка при чтении JSON-файла: " + err);
-      }
+  btnLoad.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      const { nodes: nds, edges: eds } = JSON.parse(ev.target.result);
+      nodes.clear(); edges.clear(); urlMap = {}; nextId = 0; firstSel = null;
+      nodes.add(nds); edges.add(eds);
+      nds.forEach(n => { if (n.url) urlMap[n.url] = n.id; nextId = Math.max(nextId, n.id + 1); });
     };
-    reader.readAsText(file);
+    r.readAsText(f);
   });
+
+  btnClose.addEventListener('click', () => sidePanel.classList.remove('open'));
 
   initNetwork();
-
-  function handleSaveGraph() {
-    const nodes = nodesData.get();
-    const edges = edgesData.get();
-    const graph = { nodes, edges };
-
-    const jsonStr = JSON.stringify(graph, null, 2);
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-
-    a.href = url;
-    a.download = "my-graph.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    URL.revokeObjectURL(url);
-  }
 });
