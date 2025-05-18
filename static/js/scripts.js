@@ -39,6 +39,9 @@ async function parseWikiArticle(url) {
   contentEl.querySelectorAll('img').forEach(img => {
     const src = img.getAttribute('src') || '';
     if (src.startsWith('//')) img.src = 'https:' + src;
+    if (img.srcset) {
+      img.srcset = img.srcset.replace('//', 'https://');
+    }
     img.style.maxWidth = '100%';
     img.style.height = 'auto';
   });
