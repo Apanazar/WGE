@@ -1,9 +1,6 @@
 # Wiki Graph Explorer (WGE)
 
 In the previous iteration, WGE was implemented as an extension for the Chrome browser, which prevented free distribution. Now this project has been rewritten for webview and is cross-platform.
-  
-![WGE](https://github.com/Apanazar/stuprum/blob/master/wge2.png)
-![WGE](https://github.com/Apanazar/stuprum/blob/master/wge1.png)
 ---
 
 ## 🎯 Who It’s For & Why You’ll Love It
@@ -37,7 +34,7 @@ In short, Wiki Graph Explorer turns linear Wikipedia browsing into an immersive,
 - One-click **Random** fetches a surprise article.
 - You can create and keep **notes** directly on the graph canvas.
 - If your system browser engine supports this, then you can insert even **files** into the graph canvas.
-
+- A convenient **search** bar for all articles.
 
 ## 🔹 Interactive Vis-Network Graph  
 - **Nodes** = articles; **edges** = Wikipedia links.  
