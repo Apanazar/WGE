@@ -10,17 +10,20 @@
 </head>
 <body>
     <div class="input-panel">
-        <input id="wiki-url" type="text" placeholder="URL" />
         <div class="language-selector">
-                        <select id="lang-select">
-                            <option value="en">English</option>
-                            <option value="ru">Русский</option>
-                        </select>
-                    </div>
+            <select id="lang-select">
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+            </select>
+        </div>
         
-        <button id="btn-ok">Go</button>
         <button id="btn-random">Random</button>
         
+         <div class="search-container">
+            <input type="text" id="wiki-search" placeholder="Search Wikipedia..." autocomplete="off">
+            <div id="search-results" class="search-results"></div>
+        </div>
+
         <div style="margin-left:auto">
             <button id="btn-save">Save</button>
             <button id="btn-load">Load</button>

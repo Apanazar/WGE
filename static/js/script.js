@@ -38,6 +38,20 @@ async function parseWikiArticle(url) {
     }
 }
 
+async function parseWebPage(url) {
+    try {
+        return {
+            title: 'Web Page',
+            content: `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`
+        };
+    } catch (error) {
+        console.log('Web page parse error:', error);
+        return {
+            title: 'Web Page',
+            content: `<p>Failed to load web page</p>`
+        };
+    }
+}
 
 async function getRandomWikiURL() {
     try {
@@ -107,22 +121,20 @@ function showModal(title, defaultValue = '') {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const urlInput = document.getElementById('wiki-url');
-    const btnGo = document.getElementById('btn-ok');
     const btnRand = document.getElementById('btn-random');
     const btnSave = document.getElementById('btn-save');
     const btnLoad = document.getElementById('btn-load');
-    const btnOpenFile = document.getElementById('btn-open-file');
     const fileInput = document.getElementById('file-input');
     const netContainer = document.getElementById('mynetwork');
     const sidePanel = document.getElementById('side-panel');
     const btnClose = document.getElementById('btn-close');
     const panelTitle = document.getElementById('panel-title');
     const panelIframe = document.getElementById('panel-iframe');
-
     const langSelect = document.getElementById('lang-select');
-    const fileUploadInput = document.createElement('input');
+    const searchInput = document.getElementById('wiki-search');
+    const searchResults = document.getElementById('search-results');
 
+    const fileUploadInput = document.createElement('input');
     fileUploadInput.type = 'file';
     fileUploadInput.multiple = true;
     fileUploadInput.accept = '*/*';
@@ -147,19 +159,212 @@ document.addEventListener('DOMContentLoaded', () => {
     let nodes, edges, network;
     let urlMap = {}, nextId = 0, firstSel = null;
     let activeNodeId = null;
+    let searchTimeout;
+    let currentSearchResults = [];
+    let selectedResultIndex = -1;
+
+    async function searchWikipedia(query) {
+        if (!query || query.length < 2) {
+            searchResults.innerHTML = '';
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        try {
+            searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
+            searchResults.style.display = 'block';
+
+            const lang = currentLang === 'ru' ? 'ru' : 'en';
+            const response = await fetch(
+                `https://${lang}.wikipedia.org/w/api.php?` +
+                `origin=*&action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=10`
+            );
+
+            if (!response.ok) throw new Error('Search failed');
+
+            const data = await response.json();
+
+            if (!data.query || !data.query.search || data.query.search.length === 0) {
+                searchResults.innerHTML = '<div class="search-result-item no-results">No results found</div>';
+                searchResults.style.display = 'block';
+                return;
+            }
+
+            currentSearchResults = data.query.search.map(result => ({
+                title: result.title,
+                description: result.snippet.replace(/<[^>]*>/g, ''), 
+                url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(result.title).replace(/%20/g, '_')}`
+            }));
+
+            displaySearchResults(currentSearchResults);
+        } catch (error) {
+            console.error('Search error:', error);
+            searchResults.innerHTML = '<div class="search-result-item error">Search failed. Check connection.</div>';
+            searchResults.style.display = 'block';
+        }
+    }
+
+    function displaySearchResults(results) {
+        if (results.length === 0) {
+            searchResults.innerHTML = '<div class="search-result-item no-results">No results found</div>';
+            searchResults.style.display = 'block';
+            return;
+        }
+
+        searchResults.innerHTML = results.map((result, index) => `
+            <div class="search-result-item ${index === selectedResultIndex ? 'selected' : ''}" 
+                 data-url="${result.url}" 
+                 data-index="${index}">
+                <div class="search-result-title">${result.title}</div>
+                <div class="search-result-description">${result.description || ''}</div>
+            </div>
+        `).join('');
+
+        searchResults.style.display = 'block';
+        selectedResultIndex = -1;
+    }
+
+    function handleSearchResultSelect(url, title) {
+        searchInput.value = '';
+        searchResults.innerHTML = '';
+        searchResults.style.display = 'none';
+        selectedResultIndex = -1;
+
+        nodes.clear();
+        edges.clear();
+        urlMap = {};
+        nextId = 0;
+        firstSel = null;
+
+        const rootId = nextId++;
+        urlMap[url] = rootId;
+
+        const shortTitle = title.length > 30 ? title.substring(0, 30) + '...' : title;
+
+        nodes.add({
+            id: rootId,
+            label: shortTitle,
+            url: url,
+            type: 'wikipedia',
+            x: 0,
+            y: 0,
+            color: {
+                background: '#9b59b6',
+                border: '#8e44ad',
+                highlight: { background: '#9b59b6', border: '#8e44ad' }
+            }
+        });
+
+        network.focus(rootId, {
+            scale: 1,
+            animation: {
+                duration: 500,
+                easingFunction: 'easeInOutQuad'
+            }
+        });
+
+        expandNode(rootId);
+    }
+
+    function updatePlaceholder() {
+        if (searchInput) {
+            searchInput.placeholder = 'Search';
+        }
+    }
+
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim();
+
+        if (query.length < 2) {
+            searchResults.innerHTML = '';
+            searchResults.style.display = 'none';
+            selectedResultIndex = -1;
+            return;
+        }
+
+        searchTimeout = setTimeout(() => {
+            searchWikipedia(query);
+        }, 300);
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            searchResults.style.display = 'none';
+            selectedResultIndex = -1;
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (currentSearchResults.length > 0) {
+                selectedResultIndex = (selectedResultIndex + 1) % currentSearchResults.length;
+                displaySearchResults(currentSearchResults);
+                scrollToSelectedResult();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (currentSearchResults.length > 0) {
+                selectedResultIndex = selectedResultIndex <= 0 ?
+                    currentSearchResults.length - 1 :
+                    selectedResultIndex - 1;
+                displaySearchResults(currentSearchResults);
+                scrollToSelectedResult();
+            }
+        } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
+            e.preventDefault();
+            const result = currentSearchResults[selectedResultIndex];
+            handleSearchResultSelect(result.url, result.title);
+        }
+    });
+
+    function scrollToSelectedResult() {
+        if (selectedResultIndex >= 0) {
+            const selectedElement = searchResults.querySelector(`[data-index="${selectedResultIndex}"]`);
+            if (selectedElement) {
+                selectedElement.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }
+
+    searchResults.addEventListener('click', (e) => {
+        const resultItem = e.target.closest('.search-result-item');
+        if (resultItem && resultItem.dataset.url) {
+            const url = resultItem.dataset.url;
+            const title = resultItem.querySelector('.search-result-title').textContent;
+            handleSearchResultSelect(url, title);
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        const searchContainer = document.querySelector('.search-container');
+        if (!searchContainer.contains(e.target)) {
+            searchResults.style.display = 'none';
+            selectedResultIndex = -1;
+        }
+    });
 
     if (langSelect) {
         langSelect.value = currentLang;
         langSelect.addEventListener('change', () => {
             currentLang = langSelect.value;
             updatePlaceholder();
+
+            searchInput.value = '';
+            searchResults.innerHTML = '';
+            searchResults.style.display = 'none';
+            selectedResultIndex = -1;
         });
     }
 
-    function updatePlaceholder() {
-        if (urlInput) {
-            urlInput.placeholder = 'Enter URL or path to file';
+    function isValidUrl(string) {
+        try {
+            new URL(string);
+            return true;
+        } catch (_) {
+            return false;
         }
+    }
+
+    function isValidFilePath(string) {
+        return string && (string.includes('/') || string.includes('\\') || string.includes('.'));
     }
 
     function initNetwork() {
@@ -369,19 +574,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function isValidUrl(string) {
-        try {
-            new URL(string);
-            return true;
-        } catch (_) {
-            return false;
-        }
-    }
-
-    function isValidFilePath(string) {
-        return string && (string.includes('/') || string.includes('\\') || string.includes('.'));
-    }
-
     function showNodeMenu(x, y, id) {
         ctxMenu.innerHTML = '';
 
@@ -573,12 +765,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
-    
+
         const reader = new FileReader();
-        
+
         if (isImage || isVideo) {
             reader.readAsDataURL(file);
-            
+
             reader.onload = async (e) => {
                 const data = e.target.result;
                 const id = nextId++;
@@ -657,14 +849,14 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         } else {
             reader.readAsDataURL(file);
-            
+
             reader.onload = async (e) => {
                 const data = e.target.result;
                 const id = nextId++;
-                
+
                 let iconCode = '📄';
                 let iconColor = '#3498db';
-                
+
                 if (file.name.match(/\.pdf$/i)) {
                     iconCode = '📕';
                     iconColor = '#e74c3c';
@@ -1248,67 +1440,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    btnGo.addEventListener('click', async () => {
-        const url = urlInput.value.trim();
-        if (!url) {
-            alert('Please enter a URL or file path');
-            return;
-        }
-
-        if (url.startsWith('file://') || url.includes('\\') || (url.includes('/') && !url.includes('://'))) {
-            alert('For local files, please use the "Upload Files" button or drag and drop files directly onto the graph.');
-            return;
-        }
-
-        if (!isValidUrl(url)) {
-            alert('Please enter a valid URL');
-            return;
-        }
-
-        const nodeType = url.includes('wikipedia.org') ? 'wikipedia' : 'web';
-
-        let title = null;
-        if (nodeType === 'web') {
-            title = await showModal('Enter title for the web page',
-                decodeURIComponent(url.split('/').pop() || 'Web Page').replace(/_/g, ' ')
-            );
-            if (title === null) return;
-        }
-
-        nodes.clear();
-        edges.clear();
-        urlMap = {};
-        nextId = 0;
-        firstSel = null;
-
-        const rootId = nextId++;
-        urlMap[url] = rootId;
-
-        const color = nodeType === 'wikipedia' ? {
-            background: '#3498db',
-            border: '#2980b9',
-            highlight: { background: '#3498db', border: '#2980b9' }
-        } : {
-            background: '#1abc9c',
-            border: '#16a085',
-            highlight: { background: '#1abc9c', border: '#16a085' }
-        };
-
-        nodes.add({
-            id: rootId,
-            label: title || '...',
-            url: url,
-            type: nodeType,
-            color: color
-        });
-
-        await expandNode(rootId);
-    });
-
     btnRand.addEventListener('click', async () => {
         try {
             const randomUrl = await getRandomWikiURL();
-            urlInput.value = randomUrl;
 
             nodes.clear();
             edges.clear();
@@ -1336,12 +1470,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Random error:', error);
         }
     });
-
-    if (btnOpenFile) {
-        btnOpenFile.addEventListener('click', () => {
-            fileUploadInput.click();
-        });
-    }
 
     btnSave.addEventListener('click', () => {
         const graph = {

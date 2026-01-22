@@ -42,7 +42,7 @@ func NewAsyncLogger(logDir string) (*AsyncLogger, error) {
 	}
 	logFile := filepath.Join(logDir, "wiki-explorer.log")
 
-	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file: %v", err)
 	}
