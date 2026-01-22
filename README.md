@@ -1,7 +1,9 @@
 # Wiki Graph Explorer (WGE)
 
-**Wikipedia link visualizer** — install it as a Chrome/Firefox extension and dive into any article’s web of connections.
-
+In the previous iteration, WGE was implemented as an extension for the Chrome browser, which prevented free distribution. Now this project has been rewritten for webview and is cross-platform.
+  
+![WGE](https://github.com/Apanazar/stuprum/blob/master/wge2.png)
+![WGE](https://github.com/Apanazar/stuprum/blob/master/wge1.png)
 ---
 
 ## 🎯 Who It’s For & Why You’ll Love It
@@ -10,7 +12,6 @@ Whether you’re a curious student, a researcher tracing citation paths, or just
 
 ### ✅ Effortless Exploration  
 - **Instant overview** of an article’s link neighborhood—no more endless scrolling.  
-- **One-click expansion**: drill down layer by layer without losing your place.  
 - **Drag-and-drop links** onto the canvas to bookmark and compare topics visually.
 
 ### 👩‍🎓 Ideal for Learners & Educators  
@@ -28,37 +29,32 @@ Whether you’re a curious student, a researcher tracing citation paths, or just
 - Banish endless “find in page” hunts; the graph shows links at a glance.  
 - Avoid losing context: the side panel keeps article text alongside your map.  
 
-### 🚀 Productivity Booster  
-- **Browser extension** means one quick popup to launch a full-screen map.  
-- **Customizable link limits** let you control complexity (from overview to deep dive).
-
 In short, Wiki Graph Explorer turns linear Wikipedia browsing into an immersive, visual journey—making research, teaching, and curiosity-driven exploration faster, clearer, and more fun.  
 
 
 ## 🔹 Universal Wikipedia Support  
-- Paste **any** `https://wikipedia.org/wiki/...` URL (all languages supported).  
+- Paste **any** `https://wikipedia.org/wiki/...` URL (you can insert a link to any website).
 - One-click **Random** fetches a surprise article.
+- You can create and keep **notes** directly on the graph canvas.
+- If your system browser engine supports this, then you can insert even **files** into the graph canvas.
 
 
 ## 🔹 Interactive Vis-Network Graph  
 - **Nodes** = articles; **edges** = Wikipedia links.  
-- **Click** a node to fetch & display its neighbors (limit configurable, default 5).  
+- **Click** a node to fetch & display.  
 - **Shift+Click** two nodes to draw a custom connection.  
 - **Right-click** node menu:  
   - **Open** (re-parse & refresh)  
   - **Delete**  
-  - **Detach/Reattach** (temporarily hide edges)  
+  - **Detach** (temporarily hide edges)  
 - **Drag & Drop** any link from the article panel onto the canvas to spawn a standalone node.
 
 ## 🔹 Save & Load Graphs  
 - **Save** your current node+edge graph as a JSON file.  
 - **Load** a saved JSON to restore sessions instantly.
 
+## 🔹How to build?
+- To build a project **cross-platform**, you do not need any actions other than the standard `go build`.
+
 
 ---
-
-## 🚀 Getting Started
-- **The link to the Chrome extension store will be coming soon**
-
----
-![WGE](https://github.com/Apanazar/stuprum/blob/master/wge.png)

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Wiki Graph Explorer</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/script.js"></script>
+</head>
+<body>
+    <div class="input-panel">
+        <input id="wiki-url" type="text" placeholder="URL" />
+        <div class="language-selector">
+                        <select id="lang-select">
+                            <option value="en">English</option>
+                            <option value="ru">Русский</option>
+                        </select>
+                    </div>
+        
+        <button id="btn-ok">Go</button>
+        <button id="btn-random">Random</button>
+        
+        <div style="margin-left:auto">
+            <button id="btn-save">Save</button>
+            <button id="btn-load">Load</button>
+        </div>
+        
+        <input id="file-input" type="file" accept=".json" style="display:none" />
+    </div>
+    
+    <div id="mynetwork"></div>
+    
+    <div id="side-panel">
+        <div class="panel-header">
+            <span id="panel-title"></span>
+            <button id="btn-close">Close</button>
+        </div>
+        <iframe id="panel-iframe" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation" 
+                style="width: 100%; height: calc(100% - 50px); border: none;">
+        </iframe>
+    </div>
+
+    <div id="custom-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Enter Title</h3>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="modal-input" placeholder="Enter title...">
+                <div class="modal-actions">
+                    <button id="modal-cancel" class="btn-secondary">Cancel</button>
+                    <button id="modal-ok" class="btn-primary">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
