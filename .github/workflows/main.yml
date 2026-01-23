@@ -164,7 +164,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/wge-windows.exe
+          asset_path: ./artifacts/wge-windows.exe/wge-windows.exe
           asset_name: wge-windows.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
@@ -174,7 +174,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/wge-linux
+          asset_path: ./artifacts/wge-linux/wge-linux
           asset_name: wge-linux
           asset_content_type: application/octet-stream
 
@@ -184,7 +184,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/wge-macos-intel
+          asset_path: ./artifacts/wge-macos-intel/wge-macos-intel
           asset_name: wge-macos-intel
           asset_content_type: application/octet-stream
 
@@ -194,7 +194,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/wge-macos-silicon
+          asset_path: ./artifacts/wge-macos-silicon/wge-macos-silicon
           asset_name: wge-macos-silicon
           asset_content_type: application/octet-stream
 
