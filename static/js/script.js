@@ -83,6 +83,8 @@ function showModal(title, defaultValue = '') {
         const modalCancel = document.getElementById('modal-cancel');
         const modalClose = document.querySelector('.modal-close');
 
+        
+
         modalTitle.textContent = title;
         modalInput.value = defaultValue;
         modal.style.display = 'flex';
@@ -140,6 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fileUploadInput.accept = '*/*';
     fileUploadInput.style.display = 'none';
     document.body.appendChild(fileUploadInput);
+
+    
 
     const ctxMenu = document.createElement('div');
     ctxMenu.id = 'context-menu';
