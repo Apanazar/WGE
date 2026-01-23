@@ -122,8 +122,9 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: ${{ matrix.cgo_enabled }}
+          VERSION: ${{ needs.determine-version.outputs.next_tag }}
+
         run: |
-          VERSION=${{ needs.determine-version.outputs.next_tag }}
           go build -ldflags="${{ matrix.ldflags }} -X main.Version=$VERSION" -o "${{ github.workspace }}/${{ matrix.artifact_name }}" "${{ github.workspace }}/main.go" 
 
       - name: Upload artifact
