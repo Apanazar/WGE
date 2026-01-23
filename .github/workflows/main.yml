@@ -150,9 +150,8 @@ jobs:
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.determine-version.outputs.next_tag }}
           name: Release ${{ needs.determine-version.outputs.next_tag }}
           generate_release_notes: true
