@@ -83,7 +83,7 @@ function showModal(title, defaultValue = '') {
         const modalCancel = document.getElementById('modal-cancel');
         const modalClose = document.querySelector('.modal-close');
 
-        
+
 
         modalTitle.textContent = title;
         modalInput.value = defaultValue;
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fileUploadInput.style.display = 'none';
     document.body.appendChild(fileUploadInput);
 
-    
+
 
     const ctxMenu = document.createElement('div');
     ctxMenu.id = 'context-menu';
@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentSearchResults = data.query.search.map(result => ({
                 title: result.title,
-                description: result.snippet.replace(/<[^>]*>/g, ''), 
+                description: result.snippet.replace(/<[^>]*>/g, ''),
                 url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(result.title).replace(/%20/g, '_')}`
             }));
 
@@ -234,12 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
         searchResults.style.display = 'none';
         selectedResultIndex = -1;
 
-        nodes.clear();
-        edges.clear();
-        urlMap = {};
-        nextId = 0;
-        firstSel = null;
-
         const rootId = nextId++;
         urlMap[url] = rootId;
 
@@ -250,8 +244,8 @@ document.addEventListener('DOMContentLoaded', () => {
             label: shortTitle,
             url: url,
             type: 'wikipedia',
-            x: 0,
-            y: 0,
+            x: Math.random() * 400 - 200,
+            y: Math.random() * 400 - 200,
             color: {
                 background: '#9b59b6',
                 border: '#8e44ad',
@@ -260,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         network.focus(rootId, {
-            scale: 1,
+            scale: 1.2,
             animation: {
                 duration: 500,
                 easingFunction: 'easeInOutQuad'
@@ -269,7 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         expandNode(rootId);
     }
-
     function updatePlaceholder() {
         if (searchInput) {
             searchInput.placeholder = 'Search';
@@ -424,19 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             physics: {
-                enabled: true,
-                solver: 'forceAtlas2Based',
-                forceAtlas2Based: {
-                    gravitationalConstant: -100,
-                    springLength: 150,
-                    springConstant: 0.05,
-                    avoidOverlap: 1
-                },
-                stabilization: {
-                    iterations: 500,
-                    fit: true
-                },
-                timestep: 0.5
+                enabled: false,
             },
             interaction: {
                 dragNodes: true,
@@ -447,7 +428,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 multiselect: true
             },
             layout: {
-                improvedLayout: true
+                randomSeed: undefined,
+                improvedLayout: false,
+                hierarchical: false
+
             }
         };
 
@@ -577,6 +561,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Escape') hideMenu();
         });
     }
+
+
 
     function showNodeMenu(x, y, id) {
         ctxMenu.innerHTML = '';
@@ -748,6 +734,21 @@ document.addEventListener('DOMContentLoaded', () => {
         ctxMenu.style.left = x + 'px';
         ctxMenu.style.top = y + 'px';
         ctxMenu.style.display = 'block';
+
+        const clearDiv = document.createElement('div');
+        clearDiv.innerHTML = '<i class="fas fa-trash-alt"></i> Clear Canvas';
+        clearDiv.style.padding = '10px 15px';
+        clearDiv.style.cursor = 'pointer';
+        clearDiv.style.color = '#e0e0e0';
+        clearDiv.style.borderBottom = '1px solid #333';
+        clearDiv.style.display = 'flex';
+        clearDiv.style.alignItems = 'center';
+        clearDiv.style.gap = '10px';
+        clearDiv.onclick = () => {
+            clearCanvas();
+            hideMenu();
+        };
+        ctxMenu.appendChild(clearDiv);
     }
 
     function hideMenu() {
@@ -760,12 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
             x: clientX - rect.left,
             y: clientY - rect.top
         });
-
-        const isExecutable = file.name.match(/\.(exe|bat|cmd|sh|msi|dmg|app|jar|pkg)$/i);
-        if (isExecutable) {
-            alert('Executable files are not allowed for security reasons.');
-            return;
-        }
 
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
@@ -924,10 +919,22 @@ document.addEventListener('DOMContentLoaded', () => {
         fileUploadInput.value = '';
     });
 
+    function clearCanvas() {
+        nodes.clear();
+        edges.clear();
+        urlMap = {};
+        nextId = 0;
+        firstSel = null;
+
+        sidePanel.classList.remove('open');
+        panelIframe.srcdoc = '';
+        panelTitle.textContent = '';
+        activeNodeId = null;
+    }
+
     function addSingleNode(url, x, y, customTitle = null, type = 'wikipedia') {
         try {
             if (urlMap[url]) {
-                console.log('Node already exists:', url);
                 return;
             }
 
@@ -964,12 +971,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 label: shortLabel,
                 url: url,
                 type: type,
-                x: x,
-                y: y,
-                color: color
+                x: x || 0,
+                y: y || 0,
+                color: color,
+                fixed: {
+                    x: true,
+                    y: true
+                }
             });
 
-            console.log('Node added:', url, title);
+            setTimeout(() => {
+                nodes.update({
+                    id: id,
+                    fixed: false
+                });
+            }, 100);
 
         } catch (error) {
             console.log('Add node error:', error);
@@ -1127,96 +1143,133 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         panelIframe.srcdoc = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body { 
-                        margin: 0; 
-                        padding: 20px; 
-                        background: #1a1a1a; 
-                        color: #e0e0e0; 
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                    }
-                    input, textarea { 
-                        width: 100%; 
-                        padding: 12px; 
-                        margin-bottom: 15px; 
-                        background: #2a2a2a; 
-                        color: #fff; 
-                        border: 1px solid #444; 
-                        border-radius: 6px; 
-                        box-sizing: border-box;
-                        font-size: 14px;
-                    }
-                    input:focus, textarea:focus {
-                        outline: none;
-                        border-color: #3498db;
-                        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-                    }
-                    textarea { 
-                        height: 400px; 
-                        resize: vertical; 
-                        font-family: monospace;
-                    }
-                    button { 
-                        padding: 12px 24px; 
-                        background: #3498db; 
-                        color: white; 
-                        border: none; 
-                        border-radius: 6px; 
-                        cursor: pointer; 
-                        font-size: 14px;
-                        font-weight: 500;
-                    }
-                    button:hover {
-                        background: #2980b9;
-                    }
-                    .info {
-                        font-size: 12px;
-                        color: #95a5a6;
-                        margin-top: 15px;
-                        padding-top: 15px;
-                        border-top: 1px solid #333;
-                    }
-                </style>
-            </head>
-            <body>
-                <input type="text" id="notice-title" value="${noticeData.title}" placeholder="Title">
-                <textarea id="notice-content" placeholder="Write your note here...">${noticeData.content}</textarea>
-                <button onclick="saveNotice()">Save</button>
-                <div class="info">
-                    Created: ${new Date(noticeData.created).toLocaleString()}<br>
-                    Last updated: ${new Date(noticeData.updated).toLocaleString()}
-                </div>
-                <script>
-                    function saveNotice() {
-                        const title = document.getElementById('notice-title').value;
-                        const content = document.getElementById('notice-content').value;
-                        
-                        window.parent.postMessage({
-                            type: 'notice-update',
-                            data: {
-                                id: ${node.id},
-                                title: title,
-                                content: content
-                            }
-                        }, '*');
-                    }
-                    
-                    let saveTimeout;
-                    function scheduleSave() {
-                        clearTimeout(saveTimeout);
-                        saveTimeout = setTimeout(saveNotice, 1000);
-                    }
-                    
-                    document.getElementById('notice-title').addEventListener('input', scheduleSave);
-                    document.getElementById('notice-content').addEventListener('input', scheduleSave);
-                </script>
-            </body>
-            </html>
-        `;
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            padding: 15px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 13px;
+        }
+        .title-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .editor-container {
+            height: calc(100vh - 60px);
+        }
+        .EasyMDEContainer, .CodeMirror, .editor-preview, .editor-toolbar {
+            background: #2a2a2a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+        .editor-toolbar button {
+            color: #e0e0e0 !important;
+            font-size: 12px !important;
+        }
+        .editor-toolbar button:hover {
+            background: #333 !important;
+        }
+        .CodeMirror {
+            font-size: 14px;
+            height: auto !important; 
+            max-height: 400px !important;
+        }
+        .CodeMirror-scroll {
+            overflow-y: auto !important;
+            overflow-x: auto !important;
+            max-height: 400px !important;
+        }
+        .CodeMirror-scroll::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        .CodeMirror-scroll::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        .CodeMirror-scroll::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 5px;
+        }
+        .CodeMirror-scroll::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" 
+           id="notice-title" 
+           class="title-input" 
+           value="${noticeData.title.replace(/"/g, '&quot;')}" 
+           placeholder="Title">
+    
+    <div class="editor-container">
+        <textarea id="editor-area">${noticeData.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+    </div>
+
+    <script>
+        const easyMDE = new EasyMDE({
+            element: document.getElementById('editor-area'),
+            autoDownloadFontAwesome: false,
+            spellChecker: false,
+            status: false,
+            sideBySideFullscreen: false,
+            toolbar: [
+                'bold', 'italic', 'heading', '|',
+                'code', 'quote', 'unordered-list', 'ordered-list', '|',
+                'link', 'image', '|',
+                'preview', 'side-by-side', 'fullscreen', '|',
+                'guide'
+            ],
+            forceSync: true,
+            autoFocus: true
+        });
+        function saveChanges() {
+            const title = document.getElementById('notice-title').value;
+            const content = easyMDE.value();
+            
+            window.parent.postMessage({
+                type: 'notice-update',
+                data: {
+                    id: ${node.id},
+                    title: title,
+                    content: content
+                }
+            }, '*');
+        }
+
+        let saveTimeout;
+        function scheduleSave() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveChanges, 1000);
+        }
+
+        document.getElementById('notice-title').addEventListener('input', scheduleSave);
+        easyMDE.codemirror.on('change', scheduleSave);
+    </script>
+</body>
+</html>
+    `;
     }
 
     function expandImageNode(node) {
@@ -1255,7 +1308,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </style>
             </head>
             <body>
-                <div class="info">${node.fileName || 'Image'}</div>
                 <img src="${node.fileData}" alt="${node.fileName || 'Image'}">
             </body>
             </html>
@@ -1303,7 +1355,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </style>
             </head>
             <body>
-                <div class="info">${node.fileName || 'Video'}</div>
                 <div class="video-container">
                     <video controls>
                         <source src="${node.fileData}" type="${node.fileType}">
@@ -1354,9 +1405,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </style>
             </head>
             <body>
-                <div class="file-info">
-                    ${node.fileName || 'File'} (${node.fileType || 'Unknown type'})
-                </div>
                 <iframe src="${node.fileData}"></iframe>
             </body>
             </html>
@@ -1413,9 +1461,9 @@ document.addEventListener('DOMContentLoaded', () => {
             nodes.update({
                 id,
                 color: {
-                    background: '#e74c3c',
-                    border: '#c0392b',
-                    highlight: { background: '#e74c3c', border: '#c0392b' }
+                    background: '#9b59b6',
+                    border: '#8e44ad',
+                    highlight: { background: '#9b59b6', border: '#8e44ad' }
                 }
             });
         } else {
@@ -1476,18 +1524,52 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnSave.addEventListener('click', () => {
+        const nodePositions = network.getPositions();
+
         const graph = {
             nodes: nodes.get().map(node => {
-                const { id, label, type, url, noticeData, fileData, fileName, fileType, thumbnail, x, y, color, shape, icon, image, size } = node;
-                return { id, label, type, url, noticeData, fileData, fileName, fileType, thumbnail, x, y, color, shape, icon, image, size };
+                const position = nodePositions[node.id] || { x: node.x || 0, y: node.y || 0 };
+
+                const nodeData = {
+                    id: node.id,
+                    label: node.label,
+                    type: node.type,
+                    url: node.url,
+                    noticeData: node.noticeData,
+                    fileData: node.fileData,
+                    fileName: node.fileName,
+                    fileType: node.fileType,
+                    thumbnail: node.thumbnail,
+                    x: position.x,
+                    y: position.y,
+                    color: node.color,
+                    shape: node.shape,
+                    icon: node.icon,
+                    image: node.image,
+                    size: node.size,
+                    fixed: node.fixed || false,
+                    physics: node.physics || false
+                };
+                delete nodeData.detached;
+                delete nodeData.detachedEdges;
+
+                return nodeData;
             }),
-            edges: edges.get(),
+            edges: edges.get().map(edge => ({
+                id: edge.id,
+                from: edge.from,
+                to: edge.to,
+                color: edge.color,
+                width: edge.width
+            })),
             metadata: {
                 savedAt: new Date().toISOString(),
                 version: '3.2',
                 nodeCount: nodes.length,
                 edgeCount: edges.length,
-                language: currentLang
+                language: currentLang,
+                viewPosition: network.getViewPosition(),
+                scale: network.getScale()
             }
         };
 
@@ -1513,7 +1595,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(text);
 
             if (!data.nodes || !data.edges) {
-                alert('Invalid graph file');
+                console.log('Invalid graph file');
                 return;
             }
 
@@ -1532,25 +1614,88 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             data.nodes.forEach(node => {
+                nextId = Math.max(nextId, node.id + 1);
+            });
+
+            data.nodes.forEach(node => {
                 if (node.url && (node.type === 'wikipedia' || node.type === 'web')) {
                     urlMap[node.url] = node.id;
                 }
-                nextId = Math.max(nextId, node.id + 1);
-                nodes.add(node);
+                const nodeConfig = {
+                    id: node.id,
+                    label: node.label,
+                    type: node.type,
+                    url: node.url,
+                    noticeData: node.noticeData,
+                    fileData: node.fileData,
+                    fileName: node.fileName,
+                    fileType: node.fileType,
+                    thumbnail: node.thumbnail,
+                    x: node.x,
+                    y: node.y,
+                    color: node.color,
+                    shape: node.shape,
+                    icon: node.icon,
+                    image: node.image,
+                    size: node.size,
+                    fixed: true,
+                    physics: false
+                };
+
+                nodes.add(nodeConfig);
             });
 
             edges.add(data.edges);
 
-            network.fit();
-            console.log('Graph loaded successfully:', data.nodes.length, 'nodes');
+            setTimeout(() => {
+                network.setOptions({
+                    layout: {
+                        randomSeed: undefined,
+                        improvedLayout: false,
+                        hierarchical: false
+                    },
+                    physics: false
+                });
+
+                network.redraw();
+
+                setTimeout(() => {
+                    if (data.metadata && data.metadata.viewPosition && data.metadata.scale) {
+                        network.moveTo({
+                            position: data.metadata.viewPosition,
+                            scale: data.metadata.scale,
+                            animation: {
+                                duration: 0
+                            }
+                        });
+                    } else {
+                        network.fit({
+                            animation: {
+                                duration: 0
+                            }
+                        });
+                    }
+
+                    setTimeout(() => {
+                        nodes.get().forEach(node => {
+                            nodes.update({
+                                id: node.id,
+                                fixed: false
+                            });
+                        });
+                    }, 300);
+
+                }, 100);
+            }, 100);
 
         } catch (error) {
             console.log('Load error:', error);
-            alert('Error loading file: ' + error.message);
         }
 
         fileInput.value = '';
     });
+
+
 
     btnClose.addEventListener('click', () => {
         sidePanel.classList.remove('open');
