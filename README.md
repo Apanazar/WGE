@@ -51,7 +51,7 @@ In short, Wiki Graph Explorer turns linear Wikipedia browsing into an immersive,
 - **Load** a saved JSON to restore sessions instantly.
 
 ## 🔹How to build?
-- To build a project **cross-platform**, you do not need any actions other than the standard `go build`.
-
+Linux: `sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev` and `go build --ldflags="-s -w" -o wge-linux`
+Windows: `go build --ldflags="-s -w -H windowsgui" -o wge-windows.exe`
 
 ---
