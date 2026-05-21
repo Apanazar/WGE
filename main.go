@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,8 +17,11 @@ import (
 	"wge/handlers"
 	"wge/logger"
 
-	webview "github.com/webview/webview_go"
+	"github.com/abemedia/go-webview"
+	_ "github.com/abemedia/go-webview/embedded"
 )
+
+//go:generate windres -o resources/app.syso resources/app.rc
 
 //go:embed static/*
 var staticFiles embed.FS
@@ -68,41 +73,62 @@ func registerStaticHandlers(loggerInst *logger.AsyncLogger) error {
 		fsHandler.ServeHTTP(w, r)
 	})
 
-	http.Handle("/static/", http.StripPrefix("/static/", fsHandler))
 	http.HandleFunc("/api/parse", func(w http.ResponseWriter, r *http.Request) {
 		handlers.ParseArticleHandler(w, r, loggerInst)
 	})
 	http.HandleFunc("/api/random", func(w http.ResponseWriter, r *http.Request) {
 		handlers.RandomArticleHandler(w, r, loggerInst)
 	})
-
-	loggerInst.Info("Static handlers registered")
 	return nil
 }
 
-func startServer(cfg *config.Config) {
-	loggerInst, err := logger.NewAsyncLogger(cfg.LogsDir)
+func isAddrInUse(err error) bool {
+	return strings.Contains(err.Error(), "address already in use") ||
+		strings.Contains(err.Error(), "Only one usage of each socket address")
+}
+
+func startServer(cfg *config.Config, ready chan<- int) {
+	loggerInst, err := logger.NewAsyncLogger("logs")
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
 	defer loggerInst.Stop()
-
-	loggerInst.Info("=== Wiki Graph Explorer Server Starting ===")
-	loggerInst.Infof("Configuration: %s", cfg.String())
-	loggerInst.Infof("Port: %s", cfg.Port)
 
 	if err := registerStaticHandlers(loggerInst); err != nil {
 		loggerInst.Errorf("Failed to register static handlers: %v", err)
 		log.Fatal(err)
 	}
 
-	loggerInst.Info("HTTP server configured with embedded files, starting...")
-
-	err = http.ListenAndServe(":"+cfg.Port, nil)
+	startPort, err := strconv.Atoi(cfg.Port)
 	if err != nil {
-		loggerInst.Errorf("HTTP server failed: %v", err)
-		log.Fatal(err)
+		startPort = 8091
 	}
+
+	maxAttempts := 100
+	for port := startPort; port < startPort+maxAttempts; port++ {
+		addr := fmt.Sprintf(":%d", port)
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			if isAddrInUse(err) {
+				continue
+			}
+			loggerInst.Errorf("Failed to listen on port %d: %v", port, err)
+			ready <- 0
+			log.Fatal(err)
+		}
+		ready <- port
+		loggerInst.Infof("Server started on port %d", port)
+		err = http.Serve(listener, nil)
+		if err != nil {
+			loggerInst.Errorf("HTTP server failed: %v", err)
+			log.Fatal(err)
+		}
+		return
+	}
+
+	ready <- 0
+	loggerInst.Errorf("Could not find a free port after %d attempts", maxAttempts)
+	log.Fatal("No free port available")
 }
 
 func main() {
@@ -110,12 +136,17 @@ func main() {
 
 	if err := cfg.CreateLogsDir(); err != nil {
 		log.Printf("Warning: %v, using current directory", err)
-		cfg.LogsDir = "logs"
 		os.MkdirAll("logs", 0755)
 	}
 
-	go startServer(cfg)
-	time.Sleep(1500 * time.Millisecond)
+	ready := make(chan int, 1)
+	go startServer(cfg, ready)
+
+	actualPort := <-ready
+	if actualPort == 0 {
+		log.Fatal("Failed to start server")
+	}
+	time.Sleep(100 * time.Millisecond)
 
 	w := webview.New(true)
 	defer w.Destroy()
@@ -123,7 +154,7 @@ func main() {
 	w.SetTitle("Wiki Graph Explorer")
 	w.SetSize(1400, 700, webview.HintNone)
 
-	fullURL := fmt.Sprintf("http://localhost:%s/html/index.html", cfg.Port)
+	fullURL := fmt.Sprintf("http://localhost:%d/html/index.html", actualPort)
 	w.Navigate(fullURL)
 
 	w.Run()

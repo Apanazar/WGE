@@ -33,8 +33,6 @@ func ParseArticleHandler(w http.ResponseWriter, r *http.Request, logger *logger.
 		return
 	}
 
-	logger.Infof("Parsing article: %s", url)
-
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
@@ -50,7 +48,6 @@ func ParseArticleHandler(w http.ResponseWriter, r *http.Request, logger *logger.
 
 	req.Header.Set("User-Agent", "WikiGraphExplorer/1.0")
 
-	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Errorf("Failed to fetch article %s: %v", url, err)
@@ -60,10 +57,6 @@ func ParseArticleHandler(w http.ResponseWriter, r *http.Request, logger *logger.
 		return
 	}
 	defer resp.Body.Close()
-
-	duration := time.Since(startTime)
-	logger.Infof("Article response received - URL: %s, Status: %d, Duration: %v",
-		url, resp.StatusCode, duration)
 
 	if resp.StatusCode != 200 {
 		logger.Warnf("Non-200 response from %s: %d", url, resp.StatusCode)
@@ -92,8 +85,6 @@ func ParseArticleHandler(w http.ResponseWriter, r *http.Request, logger *logger.
 	}
 
 	title := extractTitle(doc)
-	logger.Infof("Article title extracted - URL: %s, Title: %s", url, title)
-
 	baseDomain := getBaseDomain(url)
 	contentSelection := findContentSelection(doc)
 
@@ -116,11 +107,6 @@ func ParseArticleHandler(w http.ResponseWriter, r *http.Request, logger *logger.
 	}
 
 	finalHTML = prepareFinalHTML(title, finalHTML, doc, logger, url)
-
-	totalDuration := time.Since(startTime)
-	logger.Infof("Article parsed successfully - URL: %s, Title: %s, Links: %d, Total Duration: %v",
-		url, title, len(links), totalDuration)
-
 	json.NewEncoder(w).Encode(ArticleResponse{
 		Title:   title,
 		Content: finalHTML,

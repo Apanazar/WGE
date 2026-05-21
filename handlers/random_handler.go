@@ -21,8 +21,6 @@ func RandomArticleHandler(w http.ResponseWriter, r *http.Request, logger *logger
 		lang = "en"
 	}
 
-	logger.Infof("Fetching random article for language: %s", lang)
-
 	randomURL := getRandomURL(lang)
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -51,9 +49,6 @@ func RandomArticleHandler(w http.ResponseWriter, r *http.Request, logger *logger
 		return
 	}
 	defer resp.Body.Close()
-
-	logger.Infof("Random article fetched - Lang: %s, URL: %s, Status: %d",
-		lang, resp.Request.URL.String(), resp.StatusCode)
 
 	json.NewEncoder(w).Encode(RandomResponse{
 		URL: resp.Request.URL.String(),
