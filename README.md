@@ -3,6 +3,8 @@
 In the previous iteration, WGE was implemented as an extension for the Chrome browser, which prevented free distribution. Now this project has been rewritten for webview and is cross-platform.
 ---
 
+![wge](https://github.com/Apanazar/stuprum/blob/master/wge.jpg)
+
 ## 🎯 Who It’s For & Why You’ll Love It
 
 Whether you’re a curious student, a researcher tracing citation paths, or just someone who loves diving deep into Wikipedia’s rabbit holes, Wiki Graph Explorer was made for you. Here’s how it helps:
